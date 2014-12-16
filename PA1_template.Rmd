@@ -54,6 +54,7 @@ The dataset has `r zeroes`% zeroes within the "steps" variable. The Test person 
 ```{r average steps taken per day}
 date.sum <- with(activity, tapply(steps,date,sum))
 hist(date.sum, col="light blue", breaks=30, main="Histogram of total steps per day", xlab="steps per day")
+plot(date.sum, type = "h", main = "Total number of steps taken each day", col = "magenta")
 date.mean <- mean(date.sum, na.rm=T)
 date.median <- median(date.sum, na.rm=T)
 summary(date.sum)
@@ -86,6 +87,7 @@ The Person woke up at about 5:00 a.m. Between 8:10 p.m and 9:05 p.m. he took 104
 
 ### Imputing missing values
 ```{r Imputing missing values}
+sum(!complete.cases(activity))
 NA.counts <- length(activity[is.na(activity$steps),]$steps)
 
 interval.mean <- with(activity, tapply(steps,interval,mean, na.rm=T))
@@ -98,12 +100,29 @@ for (i in seq(0,2355,5)){
         activity.new[is.na(activity.new$steps)& activity.new$interval==i,]$steps <- interval.mean[row.names(interval.mean)==i,]
         }
 
+
 interval.mean.new <- with(activity.new, tapply(steps,interval,mean, na.rm=T))
 plot(activity.new$interval[1:288],interval.mean.new, type="l", main="Daily Activity pattern with Imputed data", xlab="5 - Minute Interval", ylab="Mean Steps per Interval")
 date.sum.new <- with(activity.new, tapply(steps,date,sum))
 hist(date.sum.new, col="light blue", breaks=30, ylim=c(0,25))
 date.mean.new <- mean(date.sum.new, na.rm=T)
 date.median.new <- median(date.sum.new, na.rm=T)
+
+# Alternative:
+avg.steps.int <- tapply(activity$steps, activity$interval, mean, na.rm = TRUE)
+for(i in 1:nrow(activity)) {
+        if(is.na(activity[i,1])) {
+                nona.data[i, 1] <- avg.steps.int[[as.character(data[i, 3])]]
+        }
+}
+
+# Alternative 2:
+data2 <- data
+for (i in 1:nrow(data2)) {
+        if (is.na(data2$steps[i])) {
+                data2$steps[i] <- aveDaily$steps[which(data2$interval[i] == aveDaily$interval)]                                                        
+        }
+}
 ```
 
 There are `r NA.counts` NAs in the steps column. Which is `r NA.counts/length(activity$steps)*100`% of the data. 
@@ -121,7 +140,8 @@ activity.new$day  <- revalue(activity.new$day, c(Montag="Weekday",
                                                  Freitag="Weekday",
                                                  Samstag="Weekend",
                                                  Sonntag="Weekend"))
-
+# Alternative:
+activity.new$day <- ifelse(weekdays(activity.new$date) %in%  c("Samstag", "Sonntag"),'Weekend','Weekday')
 
 activity.week <- with(activity.new, tapply(steps,interaction(day,interval, sep="_"),mean))
 activity.week <- data.frame(activity.week)
